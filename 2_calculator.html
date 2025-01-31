@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚄 应力放散计算器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Arial", sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 上对齐 */
+            overflow: auto; /* 允许页面滚动 */
+            min-height: 100vh; /* 保证页面最少占满整个屏幕 */
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            margin-top: 20px; /* 给顶部留点空间 */
+        }
+
+        .left, .right {
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            color: #ffcc00;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            max-width: 320px;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+            font-size: 16px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        input:focus {
+            border-color: #ffcc00;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            width: 100%;
+            max-width: 320px;
+            background: #ffcc00;
+            color: #333;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #ffaa00;
+        }
+
+        .error {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: -8px;
+        }
+
+        .result {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ffcc;
+            margin-top: 15px;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .details {
+            text-align: left;
+            margin-top: 15px;
+            font-size: 16px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            line-height: 1.6;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .left, .right {
+                width: 100%;
+                max-width: 100%;
+                margin-bottom: 15px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            label, input, button {
+                font-size: 14px;
+                max-width: 100%;
+            }
+
+            button {
+                font-size: 16px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="left">
+            <h2>🚄 应力放散计算器</h2>
+
+            <label for="lockedTemp">设计锁定轨温 (°C)：</label>
+            <input type="number" id="lockedTemp" placeholder="请输入设计锁定轨温">
+            <small id="lockedTempWarning" class="error"></small>
+
+            <label for="workingTemp">作业中轨温 (°C)：</label>
+            <input type="number" id="workingTemp" placeholder="请输入作业中轨温">
+
+            <label for="trackLength">轨长 (m)：</label>
+            <input type="number" id="trackLength" placeholder="请输入轨长">
+
+            <label for="lockedTrackLength">锁定轨长 (m)：</label>
+            <input type="number" id="lockedTrackLength" placeholder="默认 50" value="50" min="0" max="150">
+
+            <button onclick="calculate()">💡 计算放散量</button>
+        </div>
+
+        <div class="right">
+            <div class="result-container">
+                <div id="result" class="result"></div>
+                <div id="details" class="details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('lockedTemp').addEventListener('input', function () {
+            const lockedTemp = parseFloat(this.value);
+            const warningText = document.getElementById('lockedTempWarning');
+
+            if (!isNaN(lockedTemp) && (lockedTemp < 26 || lockedTemp > 36)) {
+                warningText.textContent = "❌ 设计锁定轨温必须在 26°C ~ 36°C 之间！";
+            } else {
+                warningText.textContent = ""; // 清除错误信息
+            }
+        });
+
+        function calculate() {
+            const lockedTemp = parseFloat(document.getElementById('lockedTemp').value);
+            const workingTemp = parseFloat(document.getElementById('workingTemp').value);
+            const lockedTrackLength = parseFloat(document.getElementById('lockedTrackLength').value);
+            const trackLength = parseFloat(document.getElementById('trackLength').value);
+            const warningText = document.getElementById('lockedTempWarning');
+
+            if (isNaN(lockedTemp) || isNaN(workingTemp) || isNaN(lockedTrackLength) || isNaN(trackLength)) {
+                alert("⚠️ 请输入所有有效数值！");
+                return;
+            }
+
+            if (lockedTemp < 26 || lockedTemp > 36) {
+                warningText.textContent = "❌ 设计锁定轨温必须在 26°C ~ 36°C 之间！";
+                return;
+            }
+
+            const actualTrackLength = trackLength - lockedTrackLength;
+            if (actualTrackLength <= 0) {
+                alert("❌ 计算得到的实际轨长应大于 0，请检查输入值！");
+                return;
+            }
+
+            // 结果显示
+            let resultsHTML = `<strong>🔢 计算结果：</strong><br>`;
+            let breakdownHTML = "<strong>📊 详细计算过程：</strong><br>";
+
+            // 逐段计算
+            for (let i = 100; i <= actualTrackLength; i += 100) {
+                let dissipationAmount = 0.0118 * (lockedTemp - workingTemp) * i;
+                resultsHTML += `📌 ${i}m: <strong>${dissipationAmount.toFixed(2)} mm</strong><br>`;
+                breakdownHTML += `📌 计算公式: 0.0118 × (${lockedTemp} - ${workingTemp}) × ${i} = ${dissipationAmount.toFixed(2)} mm<br>`;
+            }
+
+            if (actualTrackLength % 100 !== 0) {
+                let lastLength = actualTrackLength;
+                let lastDissipationAmount = 0.0118 * (lockedTemp - workingTemp) * lastLength;
+                resultsHTML += `📌 ${lastLength}m (最终点): <strong>${lastDissipationAmount.toFixed(2)} mm</strong><br>`;
+                breakdownHTML += `📌 计算公式: 0.0118 × (${lockedTemp} - ${workingTemp}) × ${lastLength} = ${lastDissipationAmount.toFixed(2)} mm<br>`;
+            }
+
+            // 展示计算结果和详细过程
+            document.getElementById('result').innerHTML = resultsHTML;
+            document.getElementById('details').innerHTML = breakdownHTML;
+        }
+    </script>
+
+</body>
+</html>
